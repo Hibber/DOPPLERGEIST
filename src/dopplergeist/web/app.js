@@ -916,21 +916,30 @@ $('resume').addEventListener('click', async () => {
   try { const value = await api(`/api/jobs/${activeJob}/resume`, {method: 'POST'}); render(value); poll(activeJob); }
   catch (error) { $('connection').textContent = error.message; }
 });
-api('/api/capabilities').then(value => {
-  setCountryProfiles(value.countries, value.default_country);
-  maxBytes = value.max_upload_bytes;
-  $('limits').textContent = `Up to ${(maxBytes / 1024 / 1024).toFixed(0)} MB per file. Analysis budget: ${(value.max_runtime_s / 60).toFixed(0)} minutes per job.`;
-  if (value.provider_configured === false) {
-    $('data-setup').textContent = 'Historical flight data is not configured. Restart the service with --online to download public data, or provide an offline configuration. Downloads and indexes can require tens of gigabytes or more and hours.';
-    $('data-setup').hidden = false;
-  } else if (value.online_enabled) {
-    $('data-setup').textContent = 'Public flight and terrain data may be downloaded to the local cache. Archives and indexes can require tens of gigabytes or more and hours.';
-    $('data-setup').hidden = false;
-  }
-}).catch(error => {
+if (location.hostname.endsWith('.github.io')) {
   setCountryProfiles(undefined);
-  $('upload-error').textContent = `Could not read service settings: ${error.message}. Only CONUS is available.`;
-});
+  $('submit').disabled = true;
+  $('limits').textContent = 'The Python analysis server is required to upload and process recordings.';
+  $('data-setup').textContent = 'This GitHub Pages build is a static interface preview. Run dopplergeist serve locally for MP3 upload, flight acquisition, search, and artifacts.';
+  $('data-setup').hidden = false;
+  $('upload-error').textContent = 'Static hosting cannot run the Python backend.';
+} else {
+  api('/api/capabilities').then(value => {
+    setCountryProfiles(value.countries, value.default_country);
+    maxBytes = value.max_upload_bytes;
+    $('limits').textContent = `Up to ${(maxBytes / 1024 / 1024).toFixed(0)} MB per file. Analysis budget: ${(value.max_runtime_s / 60).toFixed(0)} minutes per job.`;
+    if (value.provider_configured === false) {
+      $('data-setup').textContent = 'Historical flight data is not configured. Restart the service with --online to download public data, or provide an offline configuration. Downloads and indexes can require tens of gigabytes or more and hours.';
+      $('data-setup').hidden = false;
+    } else if (value.online_enabled) {
+      $('data-setup').textContent = 'Public flight and terrain data may be downloaded to the local cache. Archives and indexes can require tens of gigabytes or more and hours.';
+      $('data-setup').hidden = false;
+    }
+  }).catch(error => {
+    setCountryProfiles(undefined);
+    $('upload-error').textContent = `Could not read service settings: ${error.message}. Only CONUS is available.`;
+  });
+}
 const lightbox = $('lightbox');
 if (lightbox) {
   $('lightbox-close').addEventListener('click', () => lightbox.close());
